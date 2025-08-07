@@ -1,0 +1,9 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: product-backendconfig-v2
+spec:
+  healthCheck:
+    requestPath: /product/health
+    port: 8080
+    type: HTTP

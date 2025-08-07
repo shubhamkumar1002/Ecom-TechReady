@@ -1,0 +1,9 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: payment-backendconfig
+spec:
+  healthCheck:
+    type: HTTP
+    requestPath: /payment/health
+    port: 8080

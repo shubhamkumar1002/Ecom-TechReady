@@ -1,0 +1,9 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: order-backendconfig
+spec:
+  healthCheck:
+    requestPath: /order/health
+    port: 8080
+    type: HTTP
