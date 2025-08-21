@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"productService/models"
 	"productService/repository"
 )
@@ -12,11 +13,13 @@ import (
 func CheckForCreateOrder(repo *repository.ProductRepository) {
 
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "steam-way-468010-t0")
+	projectID := os.Getenv("PROJECT_ID")
+	orderServiceCreateSub := os.Getenv("ORDER_SERVICE_CREATE_EVENT_SUB")
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("PubSub Client error: %v", err)
 	}
-	sub := client.Subscription("orderservicecreate-sub")
+	sub := client.Subscription(orderServiceCreateSub)
 	log.Println("Product service listening for OrderCreated events...")
 	go func() {
 		err = sub.Receive(ctx, func(ctx context.Context, m *pubsub.Message) {

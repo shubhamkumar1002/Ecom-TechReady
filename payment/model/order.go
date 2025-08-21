@@ -12,7 +12,7 @@ type Order struct {
 	UserID        uint          `gorm:"not null"`
 	ProductID     string        `gorm:"not null"`
 	Quantity      int           `gorm:"not null;default:1"`
-	TotalAmount   float64       `gorm:"not null"` // price * quantity
+	TotalAmount   float64       `gorm:"not null"`
 	OrderStatus   OrderStatus   `gorm:"type:varchar(20);default:'ORDER PLACED'"`
 	PaymentStatus PaymentStatus `gorm:"type:varchar(20);default:'PENDING'"`
 	CreatedAt     time.Time     `gorm:"autoCreateTime"`

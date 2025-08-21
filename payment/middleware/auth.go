@@ -56,16 +56,13 @@ func ValidateTokenMiddleware(ctx iris.Context) {
 		bodyBytes, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
 			log.Printf("Failed to read error response body from auth service: %v", readErr)
-			// Send a generic error if we can't even read the response.
 			ctx.StopWithJSON(iris.StatusUnauthorized, iris.Map{"error": "Invalid token (and failed to parse auth response)"})
 			return
 		}
 
 		var errorResponse map[string]interface{}
 		json.Unmarshal(bodyBytes, &errorResponse)
-
-		//ctx.StopWithJSON(resp.StatusCode, errorResponse)
-
+		
 		fmt.Println("Token validation failed")
 		ctx.StopWithJSON(iris.StatusUnauthorized, iris.Map{"error": errorResponse["message"]})
 	}

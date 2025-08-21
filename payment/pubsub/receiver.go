@@ -5,17 +5,20 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"paymentService/model"
 	"paymentService/repository"
 )
 
 func CheckForPublishedPayments(repo *repository.PaymentRepository) {
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "steam-way-468010-t0")
+	projectID := os.Getenv("PROJECT_ID")
+	stockUpdatedEventSub := os.Getenv("STOCK_UPDATED_EVENT_SUB")
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("PubSub Client error: %v", err)
 	}
-	sub := client.Subscription("StockUpdatedEvent-sub")
+	sub := client.Subscription(stockUpdatedEventSub)
 
 	go func() {
 		err = sub.Receive(ctx, func(ctx context.Context, m *pubsub.Message) {
@@ -60,11 +63,13 @@ func CheckForPublishedPayments(repo *repository.PaymentRepository) {
 
 func CheckForSuccessOrderEvent(repo *repository.PaymentRepository) {
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "steam-way-468010-t0")
+	projectID := os.Getenv("PROJECT_ID")
+	orderUpdateEventSub := os.Getenv("ORDER_UPDATE_EVENT_SUB")
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("PubSub Client error: %v", err)
 	}
-	sub := client.Subscription("orderserviceUpdate-sub")
+	sub := client.Subscription(orderUpdateEventSub)
 
 	go func() {
 		err = sub.Receive(ctx, func(ctx context.Context, m *pubsub.Message) {
@@ -98,7 +103,6 @@ func CheckForSuccessOrderEvent(repo *repository.PaymentRepository) {
 					return
 				}
 			}
-
 			m.Ack()
 		})
 		if err != nil {

@@ -15,8 +15,7 @@ WORKDIR /root
 
 COPY --from=build /app/auth-service /auth-service
 
-COPY --from=build /app/serviceaccountgcp.json /app/credentials.json
+COPY --from=build /app/.env .env
 
-ENV GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
 EXPOSE 8080
 CMD ["/auth-service"]
