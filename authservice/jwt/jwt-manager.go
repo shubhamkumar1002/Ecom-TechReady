@@ -3,10 +3,13 @@ package jwt
 import (
 	"authservice/models"
 	"fmt"
+	"go.uber.org/zap"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
+
+var logger *zap.Logger
 
 type JWTManager struct {
 	secretKey            string
@@ -61,7 +64,7 @@ func (jwtManager *JWTManager) Verify(accessToken string) (*UserClaims, error) {
 			if !ok {
 				return nil, fmt.Errorf("unexpected token signing method")
 			}
-			return []byte("SECRET_KEY"), nil
+			return []byte(jwtManager.secretKey), nil
 		},
 	)
 

@@ -45,14 +45,21 @@ func AccessSecret(ctx context.Context, secretName string) (string, error) {
 	return secretData, nil
 }
 
-func ConnectToDB() (*gorm.DB, error) {
+func buildSecretPath(projectID, secretName string) string {
+	return fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, secretName)
+}
 
+func ConnectToDB() (*gorm.DB, error) {
 	ctx := context.Background()
-	projectID := "steam-way-468010-t0"
-	secretdbUser := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, "DB_USER")
-	secretdbPwd := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, "DB_PASSWORD")
-	secretdbName := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, "DB_NAME")
-	secretinstanceConnectionName := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, "INSTANCE_CONNECTION_NAME")
+	projectID := os.Getenv("PROJECT_ID")
+	if projectID == "" {
+		return nil, fmt.Errorf("PROJECT_ID environment variable is not set")
+	}
+
+	secretdbUser := buildSecretPath(projectID, "DB_USER")
+	secretdbPwd := buildSecretPath(projectID, "DB_PASSWORD")
+	secretdbName := buildSecretPath(projectID, "DB_NAME")
+	secretinstanceConnectionName := buildSecretPath(projectID, "INSTANCE_CONNECTION_NAME")
 
 	dbUser, err := AccessSecret(ctx, secretdbUser)
 	dbPwd, err := AccessSecret(ctx, secretdbPwd)

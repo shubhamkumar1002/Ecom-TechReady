@@ -20,8 +20,13 @@ func (oc *OrderController) CreateOrder(ctx iris.Context) {
 		ctx.JSON(iris.Map{"error": "Invalid input"})
 		return
 	}
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader == "" {
+		ctx.StopWithJSON(iris.StatusUnauthorized, iris.Map{"error": "Authorization header required"})
+		return
+	}
 
-	newOrder, err := oc.Service.Create(&order)
+	newOrder, err := oc.Service.Create(&order, authHeader)
 	if err != nil {
 		ctx.StatusCode(iris.StatusInternalServerError)
 		ctx.JSON(iris.Map{"error": "Failed to create order"})

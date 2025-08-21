@@ -5,18 +5,20 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"productService/models"
 )
 
 func SubmitFailureMessage(paymentEvent models.StockUpdateFailedEvent) {
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "steam-way-468010-t0")
+	projectID := os.Getenv("PROJECT_ID")
+	stockUpdateFailedEvent := os.Getenv("STOCK_UPDATE_FAILED_EVENT")
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("PubSub Client error: %v", err)
 	}
 
-	// Specify the existing topic name.
-	topic := client.Topic("StockUpdateFailedEvent")
+	topic := client.Topic(stockUpdateFailedEvent)
 	defer topic.Stop()
 	messageData, err := json.Marshal(paymentEvent)
 	if err != nil {
@@ -36,13 +38,14 @@ func SubmitFailureMessage(paymentEvent models.StockUpdateFailedEvent) {
 
 func SubmitSuccessMessage(orderEvent models.OrderCreatedEvent) {
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "steam-way-468010-t0")
+	projectID := os.Getenv("PROJECT_ID")
+	stockUpdateSuccessEvent := os.Getenv("STOCK_UPDATED_EVENT_SUB")
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("PubSub Client error: %v", err)
 	}
 
-	// Specify the existing topic name.
-	topic := client.Topic("StockUpdatedEvent")
+	topic := client.Topic(stockUpdateSuccessEvent)
 	defer topic.Stop()
 	messageData, err := json.Marshal(orderEvent)
 	if err != nil {

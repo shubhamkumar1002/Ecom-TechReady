@@ -14,12 +14,14 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: us-central1-docker.pkg.dev/ecom-project-468216/ecomrepo/order-service:v1
+          image: us-central1-docker.pkg.dev/ecom-project-468216/ecomrepo/order-service:v4
           ports:
           - containerPort: 8080
           env:
             - name: AUTH_SERVICE_URL
               value: "http://auth-service.default.svc.cluster.local/auth/validate"
+            -  name: PRODUCT_SERVICE_URL
+               value: "http://product-service-v2.default.svc.cluster.local/product/getProduct"
           resources:
             requests:
               cpu: "250m"

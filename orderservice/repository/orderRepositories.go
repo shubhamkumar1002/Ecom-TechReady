@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"orderService/model"
 	"time"
@@ -21,7 +22,7 @@ func NewOrderRepository(db *gorm.DB) *OrderRepository {
 	return &OrderRepository{DB: db}
 }
 
-func (ord *OrderRepository) Create(orderCreateDTO *model.OrderCreateDTO) (*model.Order, error) {
+func (ord *OrderRepository) Create(orderCreateDTO *model.OrderCreateDTO, authHeader string) (*model.Order, error) {
 
 	if len(orderCreateDTO.Items) == 0 {
 		return nil, errors.New("cannot create an order with zero items")
@@ -45,14 +46,25 @@ func (ord *OrderRepository) Create(orderCreateDTO *model.OrderCreateDTO) (*model
 		return nil, fmt.Errorf("failed to create request body for products service: %w", err)
 	}
 
-	productServiceURL := "http://product-service.default.svc.cluster.local/product/details"
-	resp, err := http.Post(productServiceURL, "application/json", bytes.NewBuffer(jsonBody))
+	productServiceURL := "http://product-service-v2.default.svc.cluster.local/product/details"
+	req, err := http.NewRequest("POST", productServiceURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
+		return nil, fmt.Errorf("failed to create http request: %w", err)
+	}
+
+	req.Header.Set("Authorization", authHeader)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("failed to contact products service: %w", err)
 		return nil, fmt.Errorf("failed to contact products service: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("products service returned an error: %s", resp.Status)
 		return nil, fmt.Errorf("products service returned an error: %s", resp.Status)
 	}
 
@@ -63,6 +75,7 @@ func (ord *OrderRepository) Create(orderCreateDTO *model.OrderCreateDTO) (*model
 	}
 	var productDetails []ProductDetailsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&productDetails); err != nil {
+		log.Printf("failed to decode response from products service: %w", resp.Status)
 		return nil, fmt.Errorf("failed to decode response from products service: %w", err)
 	}
 
@@ -77,10 +90,12 @@ func (ord *OrderRepository) Create(orderCreateDTO *model.OrderCreateDTO) (*model
 	for _, requestedItem := range orderCreateDTO.Items {
 		product, found := productMap[requestedItem.ProductID.String()]
 		if !found {
+			log.Printf("product with ID '%s' was not found", requestedItem.ProductID.String())
 			return nil, fmt.Errorf("product with ID '%s' was not found", requestedItem.ProductID.String())
 		}
 
 		if product.Quantity < requestedItem.Quantity {
+			log.Printf("not enough stock for product ID '%s' ", requestedItem.ProductID.String())
 			return nil, fmt.Errorf("not enough stock for product ID '%s'", requestedItem.ProductID.String())
 		}
 
@@ -118,6 +133,7 @@ func (ord *OrderRepository) Create(orderCreateDTO *model.OrderCreateDTO) (*model
 	})
 
 	if err != nil {
+		log.Printf("failed to save order to database: %w", err)
 		return nil, fmt.Errorf("failed to save order to database: %w", err)
 	}
 

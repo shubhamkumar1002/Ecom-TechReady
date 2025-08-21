@@ -5,6 +5,7 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"google.golang.org/api/option"
 	"net"
 	"os"
@@ -15,6 +16,11 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
+
+var logger *zap.Logger
+var projectID = ""
+
+var DBConnector *gorm.DB
 
 func newSecretClient(ctx context.Context) (*secretmanager.Client, error) {
 	credentialsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -45,13 +51,32 @@ func AccessSecret(ctx context.Context, secretName string) (string, error) {
 	return secretData, nil
 }
 
+func BuildSecretPath(projectID, secretName string) string {
+	return fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, secretName)
+}
+
+func GetSecretKey() string {
+	ctx := context.Background()
+	projectID := os.Getenv("PROJECT_ID")
+	secretKeySecret := BuildSecretPath(projectID, "SECRET_KEY")
+	secretKey, err := AccessSecret(ctx, secretKeySecret)
+	if err != nil {
+		logger.Fatal("failed to access secretKey: %w", zap.Error(err))
+		return ""
+	}
+	return secretKey
+}
 func ConnectToDB() (*gorm.DB, error) {
 	ctx := context.Background()
-	projectID := "steam-way-468010-t0"
-	secretdbUser := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, "DB_USER")
-	secretdbPwd := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, "DB_PASSWORD")
-	secretdbName := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, "DB_NAME")
-	secretinstanceConnectionName := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectID, "INSTANCE_CONNECTION_NAME")
+	projectID = os.Getenv("PROJECT_ID")
+	if projectID == "" {
+		return nil, fmt.Errorf("PROJECT_ID environment variable is not set")
+	}
+
+	secretdbUser := BuildSecretPath(projectID, "DB_USER")
+	secretdbPwd := BuildSecretPath(projectID, "DB_PASSWORD")
+	secretdbName := BuildSecretPath(projectID, "DB_NAME")
+	secretinstanceConnectionName := BuildSecretPath(projectID, "INSTANCE_CONNECTION_NAME")
 
 	dbUser, err := AccessSecret(ctx, secretdbUser)
 	dbPwd, err := AccessSecret(ctx, secretdbPwd)
@@ -59,7 +84,6 @@ func ConnectToDB() (*gorm.DB, error) {
 	instanceConnectionName, err := AccessSecret(ctx, secretinstanceConnectionName)
 	usePrivate := os.Getenv("PRIVATE_IP")
 
-	// Create Cloud SQL dialer
 	d, err := cloudsqlconn.NewDialer(context.Background(), cloudsqlconn.WithLazyRefresh())
 	if err != nil {
 		return nil, fmt.Errorf("cloudsqlconn.NewDialer: %w", err)
@@ -70,21 +94,17 @@ func ConnectToDB() (*gorm.DB, error) {
 		opts = append(opts, cloudsqlconn.WithPrivateIP())
 	}
 
-	// Register Cloud SQL connection with Go SQL
 	mysqlDriver.RegisterDialContext("cloudsqlconn", func(ctx context.Context, addr string) (net.Conn, error) {
 		return d.Dial(ctx, instanceConnectionName, opts...)
 	})
 
-	// DSN format
 	dsn := fmt.Sprintf("%s:%s@cloudsqlconn(localhost:3306)/%s?parseTime=true",
 		dbUser, dbPwd, dbName)
 
-	// Initialize GORM with the DSN
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("gorm.Open: %w", err)
 	}
 	db.AutoMigrate(&models.User{})
-
 	return db, nil
 }

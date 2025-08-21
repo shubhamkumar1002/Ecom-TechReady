@@ -12,8 +12,8 @@ type OrderService struct {
 	Repo *repository.OrderRepository
 }
 
-func (os *OrderService) Create(ocd *model.OrderCreateDTO) (*model.Order, error) {
-	newOrder, err := os.Repo.Create(ocd)
+func (os *OrderService) Create(ocd *model.OrderCreateDTO, authHeader string) (*model.Order, error) {
+	newOrder, err := os.Repo.Create(ocd, authHeader)
 	if err != nil {
 		return nil, err
 	}

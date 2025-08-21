@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: us-central1-docker.pkg.dev/ecom-project-468216/ecomrepo/auth-service:v1
+          image: us-central1-docker.pkg.dev/ecom-project-468216/ecomrepo/auth-service:v2
           ports:
           - containerPort: 8080
           resources:

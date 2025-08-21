@@ -7,16 +7,19 @@ import (
 	"log"
 	"orderService/model"
 	"orderService/repository"
+	"os"
 )
 
 func CheckForFailedOrderEvent(repo *repository.OrderRepository) {
 
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "steam-way-468010-t0")
+	projectID := os.Getenv("PROJECT_ID")
+	failedEventSub := os.Getenv("FAILED_EVENT")
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("PubSub Client error: %v", err)
 	}
-	sub := client.Subscription("StockUpdateFailedEvent-sub")
+	sub := client.Subscription(failedEventSub)
 
 	go func() {
 		err = sub.Receive(ctx, func(ctx context.Context, m *pubsub.Message) {

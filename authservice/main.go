@@ -1,8 +1,10 @@
 package main
 
 import (
+	"authservice/common"
 	"authservice/config"
 	"authservice/jwt"
+	"authservice/routes"
 	"log"
 	"time"
 
@@ -31,30 +33,18 @@ func init() {
 }
 
 func main() {
+	//ctx := context.Background()
 	dbConnector, err = config.ConnectToDB()
 	if err != nil {
 		logger.Fatal("Failed to connect to the database", zap.Error(err))
 	}
 
-	// * Create a new jwt manager`
-	jwtManager = jwt.NewJWTManager("SECRET_KEY", 15*time.Minute, 7*24*time.Hour)
+	secretKey := config.GetSecretKey()
+	jwtManager = jwt.NewJWTManager(secretKey, 15*time.Minute, 7*24*time.Hour)
+
+	common.Init(dbConnector, logger, jwtManager)
 
 	app := iris.New()
-	app.Get("/auth/health", func(ctx iris.Context) {
-		ctx.StatusCode(iris.StatusOK)
-		ctx.WriteString("OK")
-	})
-
-	app.Post("/auth/register", AddUser)
-	app.Post("/auth/login", AuthenticateUser)
-	app.Get("/auth/users", GetAllUsers)
-	app.Post("/auth/validate", ValidateToken)
-	app.Post("/auth/refresh", RefreshTokenHandler)
-
-	app.Get("/auth", func(ctx iris.Context) {
-		ctx.StatusCode(iris.StatusOK)
-		ctx.WriteString("OK")
-	})
-
+	routes.RegisterAuthRoutes(app)
 	app.Listen(":8080")
 }

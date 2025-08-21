@@ -2,16 +2,33 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/kataras/iris/v12"
-	"github.com/swaggo/http-swagger"
+	"go.uber.org/zap"
+	"log"
+	"productService/routes"
+
 	"productService/config"
 	"productService/controller"
-	"productService/middleware"
 	"productService/pubsub"
-	//_ "productService/docs"
 	"productService/repository"
 	"productService/service"
 )
+
+var logger *zap.Logger
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️  No .env file found, using environment variables")
+	}
+	var err error
+	logger, err = zap.NewDevelopment()
+
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync()
+}
 
 func main() {
 	app := iris.New()
@@ -26,11 +43,7 @@ func main() {
 	productHandler := &controller.ProductController{Service: *service}
 
 	pubsub.CheckForCreateOrder(repo)
-
-	app.Get("/product/swagger/{any:path}", iris.FromStd(httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"),
-	)))
-
+	
 	app.Get("/product", func(ctx iris.Context) {
 		ctx.StatusCode(iris.StatusOK)
 		ctx.WriteString("OK")
@@ -40,17 +53,7 @@ func main() {
 		ctx.WriteString("OK")
 	})
 
-	protectedRoutes := app.Party("/product")
-
-	protectedRoutes.Use(middleware.ValidateTokenMiddleware)
-	{
-		protectedRoutes.Get("/getall", productHandler.GetProducts)
-		protectedRoutes.Get("/getproductbyid/:id", productHandler.GetProductByID)
-		protectedRoutes.Post("/create", productHandler.CreateProduct)
-		protectedRoutes.Put("/updateproduct/:id", productHandler.UpdateProduct)
-		protectedRoutes.Post("/details", productHandler.GetProductDetails)
-		protectedRoutes.Delete("/deleteproduct/:id", productHandler.DeleteProduct)
-	}
+	routes.RegisterProductRoutes(app, productHandler)
 
 	app.Listen(":8080")
 }

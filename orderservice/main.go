@@ -2,24 +2,45 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/kataras/iris/v12"
+	"go.uber.org/zap"
+	"log"
+	"orderService/common"
 	"orderService/config"
 	"orderService/controller"
-	"orderService/middleware"
 	"orderService/pubsub"
 	"orderService/repository"
+	"orderService/routes"
 	"orderService/service"
 )
 
+var logger *zap.Logger
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️  No .env file found, using environment variables")
+	}
+	var err error
+	logger, err = zap.NewDevelopment()
+
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync()
+}
+
 func main() {
 	app := iris.New()
-	db, error := config.ConnectToDB()
+	dbConnector, error := config.ConnectToDB()
 	if error != nil {
 		fmt.Printf("Connection Lost")
 		return
 	}
 
-	repo := &repository.OrderRepository{DB: db}
+	common.Init(dbConnector, logger)
+
+	repo := &repository.OrderRepository{DB: dbConnector}
 	service := &service.OrderService{Repo: repo}
 	orderHandler := &controller.OrderController{Service: *service}
 
@@ -32,14 +53,8 @@ func main() {
 		ctx.StatusCode(iris.StatusOK)
 		ctx.WriteString("OK")
 	})
-	protectedRoutes := app.Party("/order")
 
-	protectedRoutes.Use(middleware.ValidateTokenMiddleware)
-	{
-		protectedRoutes.Post("/create", orderHandler.CreateOrder)
-		protectedRoutes.Get("/getall", orderHandler.GetOrders)
-		protectedRoutes.Get("/{id}", orderHandler.GetOrderByID)
-		protectedRoutes.Patch("/{id}", orderHandler.UpdateOrderStatus)
-	}
+	routes.RegisterOrderRoutes(app, orderHandler)
+
 	app.Listen(":8080")
 }

@@ -6,18 +6,20 @@ import (
 	"encoding/json"
 	"log"
 	"orderService/model"
+	"os"
 )
 
 func SubmitCreateMessage(paymentEvent model.OrderCreatedEvent) {
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "steam-way-468010-t0")
+	projectID := os.Getenv("PROJECT_ID")
+	orderCreateEvent := os.Getenv("ORDER_CREATE_EVENT")
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("PubSub Client error: %v", err)
 	}
 	defer client.Close()
 
-	// Specify the existing topic name.
-	topic := client.Topic("orderservicecreate")
+	topic := client.Topic(orderCreateEvent)
 	defer topic.Stop()
 	messageData, err := json.Marshal(paymentEvent)
 	if err != nil {
@@ -37,14 +39,15 @@ func SubmitCreateMessage(paymentEvent model.OrderCreatedEvent) {
 
 func SubmitUpdateMessage(paymentEvent model.PaymentEvent) {
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "steam-way-468010-t0")
+	projectID := os.Getenv("PROJECT_ID")
+	orderUpdateEvent := os.Getenv("ORDER_UPDATE_EVENT")
+	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		log.Fatalf("PubSub Client error: %v", err)
 	}
 	defer client.Close()
 
-	// Specify the existing topic name.
-	topic := client.Topic("orderserviceUpdate")
+	topic := client.Topic(orderUpdateEvent)
 	defer topic.Stop()
 	messageData, err := json.Marshal(paymentEvent)
 	if err != nil {

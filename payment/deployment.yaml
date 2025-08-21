@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: payment-service
-          image: us-central1-docker.pkg.dev/ecom-project-468216/ecomrepo/payment-service:v1
+          image: us-central1-docker.pkg.dev/ecom-project-468216/ecomrepo/payment-service:v2
           ports:
           - containerPort: 8080
           env:

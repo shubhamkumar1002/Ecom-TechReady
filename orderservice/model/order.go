@@ -56,7 +56,6 @@ type ItemRequest struct {
 	Price     int       `json:"price"`
 }
 
-// OrderCreateDTO is the expected JSON body for creating a new order.
 type OrderCreateDTO struct {
 	UserID uuid.UUID     `json:"user_id"`
 	Items  []ItemRequest `json:"items"`

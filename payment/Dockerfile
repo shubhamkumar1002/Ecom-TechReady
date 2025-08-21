@@ -13,14 +13,9 @@ FROM alpine:latest
 
 WORKDIR /app
 
-COPY ./docs ./docs
-
 COPY --from=build /app/payment-service /payment-service
-# --from=build /app/.env .env
 
-COPY --from=build /app/serviceaccountgcp.json /app/credentials.json
-
-ENV GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+COPY --from=build /app/.env .env
 
 EXPOSE 8080
 
